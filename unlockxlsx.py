@@ -6,10 +6,10 @@ import re
 
 
 class Locksmith:
-    def __init__(self, xlsx_file, dest_dir, sheet_num):
+    def __init__(self, xlsx_file, dest_dir, sheet_nums):
         self.xlsx = xlsx_file
         self.dest_dir = dest_dir
-        self.sheet_num = str(sheet_num)
+        self.sheet_nums = [str(sheet_num) for sheet_num in sheet_nums]
 
     def make_a_dest(self):
         if not (n := Path(self.dest_dir)).exists():
@@ -30,20 +30,23 @@ class Locksmith:
 
     def remove_protection(self):
         self.unzip_file()
-        sheet = Path(self.dest_dir) / 'xl' / 'worksheets' / f'sheet{self.sheet_num}.xml'
-        with open(sheet, 'r+') as f:
-            content = f.read()
-            pattern = re.compile(r'<sheetProtection.*?/>')
-            result = re.sub(pattern, '', content)
-            f.seek(0)
-            f.write(result)
+        for sheet in self.sheet_nums:
+            sheet = Path(self.dest_dir) / 'xl' / 'worksheets' / f'sheet{sheet}.xml'
+            with open(sheet, 'r+') as f:
+                content = f.read()
+                pattern = re.compile(r'<sheetProtection.*?/>')
+                result = re.sub(pattern, '', content)
+                f.seek(0)
+                f.write(result)
 
     def add_to_archive(self):
         self.remove_protection()
-        sheet = Path(self.dest_dir) / 'xl' / 'worksheets' / f'sheet{self.sheet_num}.xml'
-        zip_dest = Path(self.dest_dir) / (Path(self.xlsx).stem + '.zip')
-        with zipfile.ZipFile(zip_dest, 'a') as zipf:
-            zipf.write(sheet, '/xl/worksheets/sheet1.xml')
+        for sheet in self.sheet_nums:
+            sheet = Path(self.dest_dir) / 'xl' / 'worksheets' / f'sheet{sheet}.xml'
+            zip_dest = Path(self.dest_dir) / (Path(self.xlsx).stem + '.zip')
+
+            with zipfile.ZipFile(zip_dest, 'a') as zipf:
+                zipf.write(sheet, '/xl/worksheets/sheet{sheet}.xml')
 
     def make_an_xslx(self):
         self.add_to_archive()
@@ -52,5 +55,5 @@ class Locksmith:
         shutil.rmtree(self.dest_dir)
 
 
-locksmith = Locksmith('temp-up.xlsx', 'testdir', 1)
+locksmith = Locksmith('temp-up.xlsx', 'testdir', [1, 2])
 locksmith.make_an_xslx()
