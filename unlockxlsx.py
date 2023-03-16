@@ -31,8 +31,8 @@ class Locksmith:
     def remove_protection(self):
         self.unzip_file()
         for sheet in self.sheet_nums:
-            sheet = Path(self.dest_dir) / 'xl' / 'worksheets' / f'sheet{sheet}.xml'
-            with open(sheet, 'r+') as f:
+            sheet_path = Path(self.dest_dir) / 'xl' / 'worksheets' / f'sheet{sheet}.xml'
+            with open(sheet_path, 'r+') as f:
                 content = f.read()
                 pattern = re.compile(r'<sheetProtection.*?/>')
                 result = re.sub(pattern, '', content)
@@ -42,11 +42,11 @@ class Locksmith:
     def add_to_archive(self):
         self.remove_protection()
         for sheet in self.sheet_nums:
-            sheet = Path(self.dest_dir) / 'xl' / 'worksheets' / f'sheet{sheet}.xml'
+            sheet_path = Path(self.dest_dir) / 'xl' / 'worksheets' / f'sheet{sheet}.xml'
             zip_dest = Path(self.dest_dir) / (Path(self.xlsx).stem + '.zip')
 
             with zipfile.ZipFile(zip_dest, 'a') as zipf:
-                zipf.write(sheet, '/xl/worksheets/sheet{sheet}.xml')
+                zipf.write(sheet_path, f'/xl/worksheets/sheet{sheet}.xml')
 
     def make_an_xslx(self):
         self.add_to_archive()
