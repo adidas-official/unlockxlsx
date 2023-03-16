@@ -6,9 +6,9 @@ import re
 
 
 class Locksmith:
-    def __init__(self, xlsx_file, dest_dir, sheet_nums):
+    def __init__(self, xlsx_file, sheet_nums):
         self.xlsx = xlsx_file
-        self.dest_dir = dest_dir
+        self.dest_dir = './tempdir'
         self.sheet_nums = [str(sheet_num) for sheet_num in sheet_nums]
 
     def make_a_dest(self):
@@ -22,38 +22,20 @@ class Locksmith:
         if not xlsx.exists():
             copyfile(self.xlsx, zip_name)
 
-    def unzip_file(self):
-        self.make_a_copy_zip()
-        zip_name = Path(self.dest_dir) / (Path(self.xlsx).stem + '.zip')
-        with zipfile.ZipFile(zip_name, 'r') as zip_ref:
-            zip_ref.extractall(self.dest_dir)
-
     def remove_protection(self):
-        self.unzip_file()
-        for sheet in self.sheet_nums:
-            sheet_path = Path(self.dest_dir) / 'xl' / 'worksheets' / f'sheet{sheet}.xml'
-            with open(sheet_path, 'r+') as f:
-                content = f.read()
+        self.make_a_copy_zip()
+        with zipfile.ZipFile('tempdir/' + self.xlsx.replace('xlsx', 'zip'), mode='a') as zf:
+
+            for sheet in self.sheet_nums:
+                sheet_path = f'xl/worksheets/sheet{sheet}.xml'
+                content = zf.read(sheet_path).decode('cp1250')
                 pattern = re.compile(r'<sheetProtection.*?/>')
                 result = re.sub(pattern, '', content)
-                f.seek(0)
-                f.write(result)
 
-    def add_to_archive(self):
-        self.remove_protection()
-        for sheet in self.sheet_nums:
-            sheet_path = Path(self.dest_dir) / 'xl' / 'worksheets' / f'sheet{sheet}.xml'
-            zip_dest = Path(self.dest_dir) / (Path(self.xlsx).stem + '.zip')
-
-            with zipfile.ZipFile(zip_dest, 'a') as zipf:
-                zipf.write(sheet_path, f'/xl/worksheets/sheet{sheet}.xml')
+                zf.writestr(sheet_path, result)
 
     def make_an_xslx(self):
-        self.add_to_archive()
+        self.remove_protection()
         zip_dest = Path(self.dest_dir) / (Path(self.xlsx).stem + '.zip')
         shutil.copyfile(zip_dest, Path('.') / ('unlocked_' + self.xlsx))
         shutil.rmtree(self.dest_dir)
-
-
-locksmith = Locksmith('temp-up.xlsx', 'testdir', [1, 2])
-locksmith.make_an_xslx()
